@@ -1,0 +1,5 @@
+{
+  "name": "QDO_INFOTECH",
+  "description": "A minimal, architect-style portfolio featuring a geometric 3D scene built with Three.js and React Three Fiber.",
+  "requestFramePermissions": []
+}
