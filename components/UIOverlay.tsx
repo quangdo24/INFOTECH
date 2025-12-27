@@ -14,7 +14,7 @@ export const UIOverlay: React.FC<UIOverlayProps> = ({ activeSection, onNavigate,
   
   // Dynamic text classes
   const textPrimary = isDarkMode ? 'text-arch-100' : 'text-arch-900';
-  const textSecondary = isDarkMode ? 'text-arch-500' : 'text-arch-500'; // Keep middle grey for secondary
+  const textSecondary = isDarkMode ? 'text-arch-500' : 'text-arch-800'; // Darker for light mode readability
   const borderPrimary = isDarkMode ? 'border-arch-100' : 'border-arch-900';
   const borderSecondary = isDarkMode ? 'border-arch-800' : 'border-arch-300';
   const cardBg = isDarkMode ? 'bg-arch-900/80' : 'bg-white/80';
@@ -29,7 +29,7 @@ export const UIOverlay: React.FC<UIOverlayProps> = ({ activeSection, onNavigate,
           <h1 className={`text-2xl font-display font-bold tracking-widest transition-colors duration-500 ${textPrimary}`}>
             Q_INFOTECH
           </h1>
-          <span className="text-xs font-sans text-arch-500 tracking-widest uppercase">
+          <span className={`text-xs font-sans tracking-widest uppercase transition-colors duration-500 ${isDarkMode ? 'text-arch-500' : 'text-arch-700'}`}>
             EST. 2025 - TECH/CYBER
           </span>
         </div>
@@ -120,8 +120,7 @@ export const UIOverlay: React.FC<UIOverlayProps> = ({ activeSection, onNavigate,
             </h2>
             <div className={`w-24 h-1 mt-6 transition-colors duration-700 ${isDarkMode ? 'bg-arch-100' : 'bg-arch-900'}`} />
             <p className={`mt-4 max-w-sm text-sm font-sans leading-relaxed backdrop-blur-sm p-2 rounded transition-colors duration-700 ${isDarkMode ? 'text-arch-300 bg-arch-900/30' : 'text-arch-800 bg-arch-100/50'}`}>
-              Constructing the digital infrastructure for the future.
-              Check back soon for updates.
+              Under construction...
             </p>
           </div>
         )}
@@ -164,7 +163,7 @@ export const UIOverlay: React.FC<UIOverlayProps> = ({ activeSection, onNavigate,
       </main>
 
       {/* Footer */}
-      <footer className="flex justify-end items-end text-[10px] md:text-xs font-mono text-arch-500 uppercase tracking-widest pointer-events-auto z-10">
+      <footer className={`flex justify-end items-end text-[10px] md:text-xs font-mono uppercase tracking-widest pointer-events-auto z-10 transition-colors duration-500 ${isDarkMode ? 'text-arch-500' : 'text-arch-700'}`}>
         <div className="text-right">
           <p>© 2025 Q_INFOTECH SYSTEMS</p>
         </div>

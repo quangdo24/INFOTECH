@@ -9,31 +9,53 @@ interface BlinkingLightProps {
   position: [number, number, number];
   color: string;
   speed?: number;
+  isMobile?: boolean;
 }
 
-const BlinkingLight: React.FC<BlinkingLightProps> = ({ position, color, speed = 1 }) => {
+const BlinkingLight: React.FC<BlinkingLightProps> = ({ position, color, speed = 1, isMobile = false }) => {
   const ref = useRef<THREE.Mesh>(null);
+  const lightRef = useRef<THREE.PointLight>(null);
   const offset = useMemo(() => Math.random() * 100, []);
 
   useFrame((state) => {
     if (ref.current) {
       const t = state.clock.elapsedTime * speed + offset;
-      const intensity = (Math.sin(t * 15) + 1) / 2; // Fast sporadic blinking
+      // Steady, realistic network link light blinking - moderate pace
+      const blinkRate = 1.5 + (speed * 0.2); // Steady rate, slightly varied by speed
+      const isOn = Math.sin(t * blinkRate) > 0;
+      const intensity = isOn ? 1.0 : 0.15; // Clear on/off but not too dim when off
       
-      const scale = 1 + intensity * 0.3;
+      // Subtle scale change
+      const scale = isOn ? 1.2 : 0.9;
       ref.current.scale.setScalar(scale);
       
+      // Update material opacity and color intensity
       if (ref.current.material instanceof THREE.MeshBasicMaterial) {
-        ref.current.material.opacity = 0.6 + (intensity * 0.4);
+        ref.current.material.opacity = intensity;
+        // Make color brighter when on
+        const colorObj = new THREE.Color(color);
+        if (isOn) {
+          colorObj.multiplyScalar(1.3);
+        }
+        ref.current.material.color = colorObj;
+      }
+      
+      // Update point light intensity only if not mobile (performance optimization)
+      if (lightRef.current && !isMobile) {
+        lightRef.current.intensity = isOn ? 1.2 : 0.15;
       }
     }
   });
 
   return (
-    <mesh ref={ref} position={position}>
-      <circleGeometry args={[0.015, 8]} />
-      <meshBasicMaterial color={color} transparent toneMapped={false} />
-    </mesh>
+    <group position={position}>
+      <mesh ref={ref}>
+        <circleGeometry args={[0.02, 16]} />
+        <meshBasicMaterial color={color} transparent toneMapped={false} />
+      </mesh>
+      {/* Only render point light on desktop for performance */}
+      {!isMobile && <pointLight ref={lightRef} color={color} distance={0.5} intensity={1.5} />}
+    </group>
   );
 };
 
@@ -43,6 +65,7 @@ interface ServerBladeProps {
   depth: number;
   color: string;
   isDarkMode: boolean;
+  isMobile?: boolean;
 }
 
 const ServerBlade: React.FC<ServerBladeProps> = ({ 
@@ -50,12 +73,17 @@ const ServerBlade: React.FC<ServerBladeProps> = ({
   width, 
   depth, 
   color, 
-  isDarkMode 
+  isDarkMode,
+  isMobile = false
 }) => {
-  const hasLights = useMemo(() => Math.random() > 0.2, []);
-  // Changed light mode color to Green (#059669) to match requested aesthetic
-  const lightColor = isDarkMode ? "#00ff88" : "#059669"; 
-  const secondaryLightColor = isDarkMode ? "#00ffff" : "#f43f5e"; 
+  // Generate consistent light pattern per blade - slower, steady speeds
+  const lightOffset = useMemo(() => Math.random() * 100, []);
+  const greenLightSpeed = useMemo(() => 0.8 + Math.random() * 0.4, []); // Slower, steady
+  const amberLightSpeed = useMemo(() => 0.8 + Math.random() * 0.4, []); // Slower, steady
+  
+  // Green and Amber colors for link lights
+  const greenColor = isDarkMode ? "#00ff88" : "#10b981"; 
+  const amberColor = isDarkMode ? "#ffaa00" : "#f59e0b"; 
 
   return (
     <group position={position}>
@@ -97,17 +125,13 @@ const ServerBlade: React.FC<ServerBladeProps> = ({
          </mesh>
       </group>
 
-      {/* Status Lights */}
-      {hasLights && (
-        <group position={[-0.3, 0, depth / 2 + 0.02]}>
-          <BlinkingLight position={[0, 0, 0]} color={lightColor} speed={4} />
-          <BlinkingLight position={[0.05, 0, 0]} color={lightColor} speed={3} />
-          <BlinkingLight position={[0.10, 0, 0]} color={lightColor} speed={6} />
-          {Math.random() > 0.8 && (
-             <BlinkingLight position={[0.15, 0, 0]} color={secondaryLightColor} speed={8} />
-          )}
-        </group>
-      )}
+      {/* Link Lights - Green and Amber, always visible */}
+      <group position={[-0.25, 0, depth / 2 + 0.02]}>
+        {/* Green link light */}
+        <BlinkingLight position={[0, 0, 0]} color={greenColor} speed={greenLightSpeed} isMobile={isMobile} />
+        {/* Amber link light */}
+        <BlinkingLight position={[0.08, 0, 0]} color={amberColor} speed={amberLightSpeed} isMobile={isMobile} />
+      </group>
     </group>
   );
 };
@@ -215,11 +239,13 @@ const CrashCart = ({
 const ServerRack = ({ 
   position, 
   rotation = [0, 0, 0], 
-  isDarkMode 
+  isDarkMode,
+  isMobile = false
 }: { 
   position: [number, number, number], 
   rotation?: [number, number, number], 
-  isDarkMode: boolean 
+  isDarkMode: boolean,
+  isMobile?: boolean
 }) => {
   const height = 3.5;
   const width = 1.2;
@@ -276,6 +302,7 @@ const ServerRack = ({
             depth={depth - 0.1} 
             color={isDarkMode ? "#222" : "#fff"}
             isDarkMode={isDarkMode}
+            isMobile={isMobile}
           />
         ))}
       </group>
@@ -371,7 +398,7 @@ const CircuitFloor = ({ isDarkMode }: { isDarkMode: boolean }) => {
 
 // --- Main Composition ---
 
-const Composition = ({ activeSection, isDarkMode }: { activeSection: string, isDarkMode: boolean }) => {
+const Composition = ({ activeSection, isDarkMode, isMobile = false }: { activeSection: string, isDarkMode: boolean, isMobile?: boolean }) => {
   const groupRef = useRef<THREE.Group>(null);
 
   useFrame((state) => {
@@ -386,9 +413,9 @@ const Composition = ({ activeSection, isDarkMode }: { activeSection: string, isD
   return (
     <group ref={groupRef}>
       {/* Aligned Row of Servers */}
-      <ServerRack position={[-1.25, 0.5, 0]} isDarkMode={isDarkMode} />
-      <ServerRack position={[0, 0.5, 0]} isDarkMode={isDarkMode} />
-      <ServerRack position={[1.25, 0.5, 0]} isDarkMode={isDarkMode} />
+      <ServerRack position={[-1.25, 0.5, 0]} isDarkMode={isDarkMode} isMobile={isMobile} />
+      <ServerRack position={[0, 0.5, 0]} isDarkMode={isDarkMode} isMobile={isMobile} />
+      <ServerRack position={[1.25, 0.5, 0]} isDarkMode={isDarkMode} isMobile={isMobile} />
       
       {/* Crash Cart next to servers */}
       <CrashCart position={[2.5, -1.25, 1]} rotation={[0, -0.4, 0]} isDarkMode={isDarkMode} />
@@ -411,9 +438,22 @@ export const ArchitectScene: React.FC<{ activeSection: string, isDarkMode: boole
   const bgColor = isDarkMode ? "#111111" : "#F0F0F0";
   const fogColor = isDarkMode ? "#111111" : "#F0F0F0";
   const shadowColor = isDarkMode ? "#000000" : "#888888";
+  
+  // Detect mobile device - check for touch capability or small screen width
+  const isMobile = typeof window !== 'undefined' && (window.innerWidth < 768 || 'ontouchstart' in window);
+
+  // Camera position - further out on mobile for better view
+  const cameraPosition: [number, number, number] = isMobile ? [0, 2.5, 12] : [0, 2, 9];
+  const cameraFov = isMobile ? 40 : 35;
 
   return (
-    <Canvas shadows dpr={[1, 2]} camera={{ position: [0, 2, 9], fov: 35 }} style={{ width: '100%', height: '100%' }}>
+    <Canvas 
+      shadows={!isMobile} 
+      dpr={isMobile ? [1, 1.5] : [1, 2]} 
+      camera={{ position: cameraPosition, fov: cameraFov }} 
+      style={{ width: '100%', height: '100%' }}
+      performance={{ min: 0.5 }}
+    >
       <color attach="background" args={[bgColor]} />
       <fog attach="fog" args={[fogColor, 5, 30]} />
 
@@ -422,8 +462,8 @@ export const ArchitectScene: React.FC<{ activeSection: string, isDarkMode: boole
       <directionalLight 
         position={[5, 10, 5]} 
         intensity={isDarkMode ? 0.5 : 1.2} 
-        castShadow 
-        shadow-mapSize={[2048, 2048]} 
+        castShadow={!isMobile}
+        shadow-mapSize={isMobile ? [512, 512] : [2048, 2048]} 
         shadow-bias={-0.0001}
       />
       
@@ -437,19 +477,21 @@ export const ArchitectScene: React.FC<{ activeSection: string, isDarkMode: boole
       />
 
       <Suspense fallback={null}>
-        <Environment preset={isDarkMode ? "city" : "warehouse"} blur={0.8} />
+        <Environment preset={isDarkMode ? "city" : "warehouse"} blur={isMobile ? 0.5 : 0.8} />
       </Suspense>
 
-      <Composition activeSection={activeSection} isDarkMode={isDarkMode} />
+      <Composition activeSection={activeSection} isDarkMode={isDarkMode} isMobile={isMobile} />
 
-      <ContactShadows 
-        resolution={1024} 
-        scale={40} 
-        blur={2} 
-        opacity={isDarkMode ? 0.5 : 0.4} 
-        far={10} 
-        color={shadowColor} 
-      />
+      {!isMobile && (
+        <ContactShadows 
+          resolution={512} 
+          scale={40} 
+          blur={2} 
+          opacity={isDarkMode ? 0.5 : 0.4} 
+          far={10} 
+          color={shadowColor} 
+        />
+      )}
 
       <OrbitControls 
         enablePan={false} 
@@ -457,7 +499,7 @@ export const ArchitectScene: React.FC<{ activeSection: string, isDarkMode: boole
         minPolarAngle={Math.PI / 2.5} 
         maxPolarAngle={Math.PI / 2}
         autoRotate={true}
-        autoRotateSpeed={0.2}
+        autoRotateSpeed={isMobile ? 1.0 : 0.5}
       />
     </Canvas>
   );
