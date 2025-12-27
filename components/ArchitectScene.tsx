@@ -1,4 +1,4 @@
-import React, { useRef, useMemo, useState } from 'react';
+import React, { useRef, useMemo, useState, Suspense } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, ContactShadows, Environment, Float, PerspectiveCamera, CatmullRomLine, QuadraticBezierLine } from '@react-three/drei';
 import * as THREE from 'three';
@@ -250,11 +250,11 @@ const ServerRack = ({
       <mesh castShadow receiveShadow position={[0, 0, 0]}>
         <boxGeometry args={[width, height, depth]} />
         <meshStandardMaterial color={frameColor} roughness={0.1} metalness={0.1} transparent opacity={0.05} />
-        <lineSegments>
-            <edgesGeometry args={[new THREE.BoxGeometry(width, height, depth)]} />
-            <lineBasicMaterial color={isDarkMode ? "#333" : "#ccc"} />
-        </lineSegments>
       </mesh>
+      <lineSegments position={[0, 0, 0]}>
+        <edgesGeometry args={[new THREE.BoxGeometry(width, height, depth)]} />
+        <lineBasicMaterial color={isDarkMode ? "#333" : "#ccc"} />
+      </lineSegments>
 
       {/* Rack Rails (Visual Detail) */}
       <mesh position={[-width/2 + 0.05, 0, depth/2 - 0.05]}>
@@ -408,13 +408,12 @@ const Composition = ({ activeSection, isDarkMode }: { activeSection: string, isD
 };
 
 export const ArchitectScene: React.FC<{ activeSection: string, isDarkMode: boolean }> = ({ activeSection, isDarkMode }) => {
-  
   const bgColor = isDarkMode ? "#111111" : "#F0F0F0";
   const fogColor = isDarkMode ? "#111111" : "#F0F0F0";
   const shadowColor = isDarkMode ? "#000000" : "#888888";
 
   return (
-    <Canvas shadows dpr={[1, 2]} camera={{ position: [0, 2, 9], fov: 35 }}>
+    <Canvas shadows dpr={[1, 2]} camera={{ position: [0, 2, 9], fov: 35 }} style={{ width: '100%', height: '100%' }}>
       <color attach="background" args={[bgColor]} />
       <fog attach="fog" args={[fogColor, 5, 30]} />
 
@@ -437,7 +436,9 @@ export const ArchitectScene: React.FC<{ activeSection: string, isDarkMode: boole
         penumbra={1}
       />
 
-      <Environment preset={isDarkMode ? "city" : "warehouse"} blur={0.8} />
+      <Suspense fallback={null}>
+        <Environment preset={isDarkMode ? "city" : "warehouse"} blur={0.8} />
+      </Suspense>
 
       <Composition activeSection={activeSection} isDarkMode={isDarkMode} />
 
